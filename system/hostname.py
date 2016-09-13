@@ -29,7 +29,7 @@ short_description: Manage hostname
 requirements: [ hostname ]
 description:
     - Set system's hostname.
-    - Currently implemented on Debian, Ubuntu, Fedora, RedHat, openSUSE, Linaro, ScientificLinux, Arch, CentOS, AMI, Alpine Linux.
+    - Currently implemented on Debian, Ubuntu, Fedora, RedHat, openSUSE, Linaro, ScientificLinux, Arch, CentOS, AMI, Alpine Linux, SmartOS.
     - Any distribution that uses systemd as their init system.
     - Note, this module does *NOT* modify /etc/hosts. You need to modify it yourself using other modules like template or replace.
 options:
@@ -540,6 +540,45 @@ class SolarisStrategy(GenericStrategy):
 
 # ===========================================
 
+class SmartOSStrategy(GenericStrategy):
+    """
+    This is a SmartOS or later Hostname manipulation strategy class - it
+    edits /etc/nodename.
+    """
+    NODENAME_FILE = '/etc/nodename'
+
+    def update_current_and_permanent_hostname(self):
+        self.update_permanent_hostname()
+        self.update_current_hostname()
+        return self.changed
+
+    def get_permanent_hostname(self):
+        try:
+            f = open(self.NODENAME_FILE, 'rb')
+            try:
+                for line in f.readlines():
+                    return line.strip()
+            finally:
+                f.close()
+        except Exception:
+            err = get_exception()
+            self.module.fail_json(msg="failed to read hostname: %s" %
+                str(err))
+
+    def set_permanent_hostname(self, name):
+        try:
+            f = open(self.NODENAME_FILE, 'w+')
+            try:
+                f.write("{}\n".format(name))
+            finally:
+                f.close()
+        except Exception:
+            err = get_exception()
+            self.module.fail_json(msg="failed to update hostname: %s" %
+                str(err))
+
+# ===========================================
+
 class FreeBSDStrategy(GenericStrategy):
     """
     This is a FreeBSD hostname manipulation strategy class - it edits
@@ -717,6 +756,11 @@ class SolarisHostname(Hostname):
     platform = 'SunOS'
     distribution = None
     strategy_class = SolarisStrategy
+
+class SmartOSHostname(Hostname):
+    platform = 'SunOS'
+    distribution = 'SmartOS'
+    strategy_class = SmartOSStrategy
 
 class FreeBSDHostname(Hostname):
     platform = 'FreeBSD'
