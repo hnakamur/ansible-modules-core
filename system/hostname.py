@@ -518,8 +518,8 @@ class SolarisStrategy(GenericStrategy):
         cmd = [self.hostname_cmd, cmd_option, name]
         rc, out, err = self.module.run_command(cmd)
         if rc != 0:
-            self.module.fail_json(msg="Command failed rc=%d, out=%s, err=%s" %
-                (rc, out, err))
+            self.module.fail_json(msg="Command failed rc=%d, out=%s, err=%s, cmd=%s, strategy=%s" %
+                (rc, out, err, " ".join(cmd), type(self).__name__))
 
     def get_permanent_hostname(self):
         fmri = 'svc:/system/identity:node'
