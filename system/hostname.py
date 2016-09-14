@@ -752,10 +752,10 @@ class OpenBSDHostname(Hostname):
     distribution = None
     strategy_class = OpenBSDStrategy
 
-class SolarisHostname(Hostname):
-    platform = 'SunOS'
-    distribution = None
-    strategy_class = SolarisStrategy
+#class SolarisHostname(Hostname):
+#    platform = 'SunOS'
+#    distribution = None
+#    strategy_class = SolarisStrategy
 
 class SmartOSHostname(Hostname):
     platform = 'SunOS'
