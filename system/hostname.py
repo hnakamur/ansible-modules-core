@@ -29,7 +29,7 @@ short_description: Manage hostname
 requirements: [ hostname ]
 description:
     - Set system's hostname.
-    - Currently implemented on Debian, Ubuntu, Fedora, RedHat, openSUSE, Linaro, ScientificLinux, Arch, CentOS, AMI.
+    - Currently implemented on Debian, Ubuntu, Fedora, RedHat, openSUSE, Linaro, ScientificLinux, Arch, CentOS, AMI, Alpine Linux.
     - Any distribution that uses systemd as their init system.
     - Note, this module does *NOT* modify /etc/hosts. You need to modify it yourself using other modules like template or replace.
 options:
@@ -314,6 +314,59 @@ class RedHatStrategy(GenericStrategy):
             err = get_exception()
             self.module.fail_json(msg="failed to update hostname: %s" %
                 str(err))
+
+# ===========================================
+
+class AlpineStrategy(GenericStrategy):
+    """
+    This is a Alpine Linux Hostname manipulation strategy class - it edits
+    the /etc/hostname file then run hostname -F /etc/hostname.
+    """
+
+    HOSTNAME_FILE = '/etc/hostname'
+
+    def update_current_and_permanent_hostname(self):
+        self.update_permanent_hostname()
+        self.update_current_hostname()
+        return self.changed
+
+    def get_permanent_hostname(self):
+        if not os.path.isfile(self.HOSTNAME_FILE):
+            try:
+                open(self.HOSTNAME_FILE, "a").write("")
+            except IOError:
+                err = get_exception()
+                self.module.fail_json(msg="failed to write file: %s" %
+                    str(err))
+        try:
+            f = open(self.HOSTNAME_FILE)
+            try:
+                return f.read().strip()
+            finally:
+                f.close()
+        except Exception:
+            err = get_exception()
+            self.module.fail_json(msg="failed to read hostname: %s" %
+                str(err))
+
+    def set_permanent_hostname(self, name):
+        try:
+            f = open(self.HOSTNAME_FILE, 'w+')
+            try:
+                f.write("%s\n" % name)
+            finally:
+                f.close()
+        except Exception:
+            err = get_exception()
+            self.module.fail_json(msg="failed to update hostname: %s" %
+                str(err))
+
+    def set_current_hostname(self, name):
+        cmd = [self.hostname_cmd, '-F', self.HOSTNAME_FILE]
+        rc, out, err = self.module.run_command(cmd)
+        if rc != 0:
+            self.module.fail_json(msg="Command failed rc=%d, out=%s, err=%s" %
+                (rc, out, err))
 
 
 # ===========================================
@@ -643,6 +696,11 @@ class ALTLinuxHostname(Hostname):
     platform = 'Linux'
     distribution = 'Altlinux'
     strategy_class = RedHatStrategy
+
+class AlpineLinuxHostname(Hostname):
+    platform = 'Linux'
+    distribution = 'Alpine'
+    strategy_class = AlpineStrategy
 
 class OpenBSDHostname(Hostname):
     platform = 'OpenBSD'
