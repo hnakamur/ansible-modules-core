@@ -56,6 +56,15 @@ class UnimplementedStrategy(object):
     def __init__(self, module):
         self.module = module
 
+    def update_current_and_permanent_hostname(self):
+        self.unimplemented_error()
+
+    def update_current_hostname(self):
+        self.unimplemented_error()
+
+    def update_permanent_hostname(self):
+        self.unimplemented_error()
+
     def get_current_hostname(self):
         self.unimplemented_error()
 
@@ -103,6 +112,9 @@ class Hostname(object):
         else:
             self.strategy = self.strategy_class(module)
 
+    def update_current_and_permanent_hostname(self):
+        return self.strategy.update_current_and_permanent_hostname()
+
     def get_current_hostname(self):
         return self.strategy.get_current_hostname()
 
@@ -129,6 +141,26 @@ class GenericStrategy(object):
     def __init__(self, module):
         self.module = module
         self.hostname_cmd = self.module.get_bin_path('hostname', True)
+        self.changed = False
+
+    def update_current_and_permanent_hostname(self):
+        self.update_current_hostname()
+        self.update_permanent_hostname()
+        return self.changed
+
+    def update_current_hostname(self):
+        name = self.module.params['name']
+        current_name = self.get_current_hostname()
+        if current_name != name:
+            self.set_current_hostname(name)
+            self.changed = True
+
+    def update_permanent_hostname(self):
+        name = self.module.params['name']
+        permanent_name = self.get_permanent_hostname()
+        if permanent_name != name:
+            self.set_permanent_hostname(name)
+            self.changed = True
 
     def get_current_hostname(self):
         cmd = [self.hostname_cmd]
@@ -638,18 +670,8 @@ def main():
     )
 
     hostname = Hostname(module)
-
-    changed = False
     name = module.params['name']
-    current_name = hostname.get_current_hostname()
-    if current_name != name:
-        hostname.set_current_hostname(name)
-        changed = True
-
-    permanent_name = hostname.get_permanent_hostname()
-    if permanent_name != name:
-        hostname.set_permanent_hostname(name)
-        changed = True
+    changed = hostname.update_current_and_permanent_hostname()
 
     module.exit_json(changed=changed, name=name,
                      ansible_facts=dict(ansible_hostname=name.split('.')[0],
