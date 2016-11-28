@@ -569,7 +569,7 @@ class SmartOSStrategy(GenericStrategy):
         try:
             f = open(self.NODENAME_FILE, 'w+')
             try:
-                f.write("{}\n".format(name))
+                f.write("%s\n" % name)
             finally:
                 f.close()
         except Exception:
